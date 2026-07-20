@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Discover delicious recipes from around the world. Search by ingredients or keywords, filter by category or origin, and save your favorites.">
+    <title>BiteCraft - Premium Recipe Discovery</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="glass-bg"></div>
+    
+    <header class="app-header">
+        <div class="header-container">
+            <div class="logo">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+                <span class="logo-text">Bite<span>Craft</span></span>
+            </div>
+            <nav class="header-nav">
+                <button id="show-all-btn" class="nav-link active">All Recipes</button>
+                <button id="show-fav-btn" class="nav-link">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                    </svg>
+                    My Favorites (<span id="fav-count">0</span>)
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <h1 class="hero-title">Culinary Inspiration, <br>Tailored To You</h1>
+            <p class="hero-subtitle">Search, filter, and master hundreds of recipes using ingredients you already have.</p>
+        </section>
+
+        <!-- Search and Filter Controls -->
+        <section class="search-filter-section">
+            <form id="search-form" class="search-form">
+                <div class="search-input-wrapper">
+                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" id="search-input" placeholder="Search by recipe name, ingredient or keyword..." required>
+                    <button type="submit" class="search-submit-btn">Search</button>
+                </div>
+                <div class="filter-controls">
+                    <div class="filter-group">
+                        <label for="category-filter">Category</label>
+                        <select id="category-filter">
+                            <option value="">All Categories</option>
+                            <!-- Dynamically Populated -->
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="area-filter">Cuisine Origin</label>
+                        <select id="area-filter">
+                            <option value="">All Regions</option>
+                            <!-- Dynamically Populated -->
+                        </select>
+                    </div>
+                    <button type="button" id="reset-filters" class="reset-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                        </svg>
+                        Reset
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Results Grid -->
+        <section class="recipes-section">
+            <div class="section-header">
+                <h2 id="results-heading" class="section-title">Featured Recipes</h2>
+                <span id="results-count" class="results-badge">Loading...</span>
+            </div>
+            
+            <div id="loading-spinner" class="loading-spinner hidden">
+                <div class="spinner"></div>
+                <p>Curating your culinary choices...</p>
+            </div>
+
+            <div id="error-message" class="error-card hidden">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <h3>No Recipes Found</h3>
+                <p id="error-text">We couldn't find matches for your search. Please check your spelling or try another keyword.</p>
+            </div>
+
+            <div id="recipes-grid" class="recipes-grid">
+                <!-- Dynamically Populated Recipe Cards -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Detailed Recipe Modal -->
+    <div id="recipe-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button id="close-modal-btn" class="close-modal-btn" aria-label="Close modal">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <div class="modal-body-wrapper">
+                <div class="modal-left">
+                    <div class="modal-img-container">
+                        <img id="modal-recipe-img" src="" alt="">
+                        <button id="modal-fav-btn" class="modal-fav-btn" aria-label="Add to favorites">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="modal-tags">
+                        <span id="modal-recipe-category" class="tag-badge">Category</span>
+                        <span id="modal-recipe-area" class="tag-badge">Area</span>
+                    </div>
+                    <div class="ingredients-container">
+                        <h3>Ingredients</h3>
+                        <ul id="modal-recipe-ingredients" class="ingredients-list">
+                            <!-- Dynamically Populated -->
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-right">
+                    <h2 id="modal-recipe-title" class="recipe-modal-title">Recipe Title</h2>
+                    <div class="instructions-container">
+                        <h3>Instructions</h3>
+                        <div id="modal-recipe-instructions" class="recipe-instructions-text">
+                            <!-- Dynamically Populated -->
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <a id="modal-youtube-link" class="youtube-btn" target="_blank" rel="noopener noreferrer">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.11C19.517 3.545 12 3.545 12 3.545s-7.517 0-9.388.507a3.003 3.003 0 0 0-2.11 2.11C0 8.033 0 12 0 12s0 3.967.502 5.837a3.003 3.003 0 0 0 2.11 2.11c1.871.507 9.388.507 9.388.507s7.517 0 9.388-.507a3.003 3.003 0 0 0 2.11-2.11C24 15.967 24 12 24 12s0-3.967-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                            </svg>
+                            Watch Tutorial
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="app-footer">
+        <p>&copy; 2026 BiteCraft. Powered by TheMealDB API. Crafted with raw HTML, CSS, and JS.</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
