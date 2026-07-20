@@ -1,5 +1,6 @@
 // Global State
 let currentRecipes = [];
+let fallbackRecipes = [];
 let favoriteRecipes = JSON.parse(localStorage.getItem('bitecraft_favorites')) || [];
 let activeTab = 'all'; // 'all' or 'favorites'
 
@@ -41,12 +42,23 @@ const modalRecipeInstructions = document.getElementById('modal-recipe-instructio
 const modalYoutubeLink = document.getElementById('modal-youtube-link');
 
 // Initialize Application
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    await initFallbackRecipes();
     initFilters();
     loadDefaultRecipes();
     updateFavBadge();
     setupEventListeners();
 });
+
+// Load Fallback Recipes
+async function initFallbackRecipes() {
+    try {
+        const res = await fetch('recipeData.json');
+        fallbackRecipes = await res.json();
+    } catch (err) {
+        console.error('Failed to load fallback recipes:', err);
+    }
+}
 
 // Event Listeners Setup
 function setupEventListeners() {
@@ -94,7 +106,37 @@ async function initFilters() {
         }
     } catch (err) {
         console.error('Error initializing filters:', err);
+    } finally {
+        populateFiltersFromFallback();
     }
+}
+
+function populateFiltersFromFallback() {
+    const catsSet = new Set();
+    const areasSet = new Set();
+    
+    fallbackRecipes.forEach(meal => {
+        if (meal.strCategory) catsSet.add(meal.strCategory);
+        if (meal.strArea) areasSet.add(meal.strArea);
+    });
+    
+    Array.from(catsSet).sort().forEach(cat => {
+        if (!categoryFilter.querySelector(`option[value="${cat}"]`)) {
+            const opt = document.createElement('option');
+            opt.value = cat;
+            opt.textContent = cat;
+            categoryFilter.appendChild(opt);
+        }
+    });
+    
+    Array.from(areasSet).sort().forEach(area => {
+        if (!areaFilter.querySelector(`option[value="${area}"]`)) {
+            const opt = document.createElement('option');
+            opt.value = area;
+            opt.textContent = area;
+            areaFilter.appendChild(opt);
+        }
+    });
 }
 
 // Load Default Recipes on App Start
@@ -113,8 +155,24 @@ async function fetchRecipes(query) {
         const res = await fetch(`${API_SEARCH}${encodeURIComponent(query)}`);
         const data = await res.json();
         
-        if (data.meals) {
-            currentRecipes = data.meals;
+        let apiMeals = data.meals || [];
+        
+        // Merge with local matches
+        const localMatches = fallbackRecipes.filter(meal => 
+            meal.strMeal.toLowerCase().includes(query.toLowerCase()) ||
+            meal.strCategory.toLowerCase().includes(query.toLowerCase()) ||
+            meal.strArea.toLowerCase().includes(query.toLowerCase())
+        );
+        
+        const merged = [...apiMeals];
+        localMatches.forEach(localMeal => {
+            if (!merged.some(m => m.strMeal.toLowerCase() === localMeal.strMeal.toLowerCase())) {
+                merged.push(localMeal);
+            }
+        });
+        
+        if (merged.length > 0) {
+            currentRecipes = merged;
             applyFiltersAndRender();
         } else {
             currentRecipes = [];
@@ -122,9 +180,21 @@ async function fetchRecipes(query) {
             showError(true, `No recipes found for "${query}". Try searching something else like 'chicken', 'beef', or 'chocolate'.`);
         }
     } catch (err) {
-        console.error('Error fetching recipes:', err);
-        showLoading(false);
-        showError(true, 'Connection error. Please check your internet and try again.');
+        console.error('Error fetching recipes, using fallback:', err);
+        const localMatches = fallbackRecipes.filter(meal => 
+            meal.strMeal.toLowerCase().includes(query.toLowerCase()) ||
+            meal.strCategory.toLowerCase().includes(query.toLowerCase()) ||
+            meal.strArea.toLowerCase().includes(query.toLowerCase())
+        );
+        
+        if (localMatches.length > 0) {
+            currentRecipes = localMatches;
+            applyFiltersAndRender();
+        } else {
+            currentRecipes = [];
+            showLoading(false);
+            showError(true, 'Connection error. Displaying no recipes.');
+        }
     }
 }
 
@@ -144,16 +214,28 @@ function applyFiltersAndRender() {
     
     let filtered = [];
     if (activeTab === 'all') {
-        filtered = [...currentRecipes];
-        
         const catVal = categoryFilter.value;
         const areaVal = areaFilter.value;
         
-        if (catVal) {
-            filtered = filtered.filter(meal => meal.strCategory === catVal);
-        }
-        if (areaVal) {
-            filtered = filtered.filter(meal => meal.strArea === areaVal);
+        if (catVal || areaVal) {
+            filtered = [...fallbackRecipes];
+            if (catVal) {
+                filtered = filtered.filter(meal => meal.strCategory === catVal);
+            }
+            if (areaVal) {
+                filtered = filtered.filter(meal => meal.strArea === areaVal);
+            }
+            
+            // Also merge with any matches from currentRecipes that weren't in the fallback list
+            currentRecipes.forEach(meal => {
+                if (catVal && meal.strCategory !== catVal) return;
+                if (areaVal && meal.strArea !== areaVal) return;
+                if (!filtered.some(f => f.strMeal.toLowerCase() === meal.strMeal.toLowerCase())) {
+                    filtered.push(meal);
+                }
+            });
+        } else {
+            filtered = [...currentRecipes];
         }
         
         resultsHeading.textContent = catVal || areaVal ? 'Filtered Results' : 'Featured Recipes';
@@ -271,6 +353,14 @@ function switchTab(tab) {
 
 // Show Recipe Details Modal
 async function showRecipeDetails(id) {
+    // Check fallback list first
+    const localMeal = fallbackRecipes.find(m => m.idMeal === id);
+    if (localMeal) {
+        populateModal(localMeal);
+        showModal();
+        return;
+    }
+
     showLoading(true);
     
     try {
